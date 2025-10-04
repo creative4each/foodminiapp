@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Мини‑маркет</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: -apple-system, Inter, Roboto, Arial; margin:0; padding:16px; }
+    h1 { margin-top:0; }
+    .stores { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+    .btn { border:1px solid #ddd; border-radius:14px; padding:10px 12px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.06); cursor:pointer; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .card { border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06); padding: 12px; background:#fff; }
+    .row { display:flex; align-items:center; gap:8px; }
+    .muted { opacity:.7; font-size:12px; }
+    .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #eee; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+    .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
+    .hidden { display:none; }
+    .plan { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Мини‑маркет</h1>
+  <div id="stores" class="stores"></div>
+  <div id="catalog" class="grid"></div>
+  <div id="plan" class="hidden">
+    <h2>План покупок</h2>
+    <div id="planText" class="plan"></div>
+  </div>
+  <div id="bar" class="bar hidden">
+    <div><b id="sum">0₽</b> • <span id="weight" class="muted">0 кг</span></div>
+    <div>
+      <button id="btnPlan" class="btn">План</button>
+      <button id="btnClear" class="btn">Очистить</button>
+    </div>
+  </div>
+
+  <script>
+  const API_BASE = "https://script.google.com/macros/s/AKfycbwJaYja-7AY9d1nhAo8VeUjSmxA-M9g2UaxSH-IU9J46Sc2S7txa-3su0vymjnOVR7H/exec"; // <- замените на URL вашего Apps Script, например: https://script.google.com/macros/s/XXXXX/exec
+  const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
+
+  let STORES = [];
+  let CATALOG = [];
+  const cart = new Map(); // id -> qty
+
+  function formatRub(n){ return (n||0).toFixed(2).replace('.', ',') + '₽'; }
+  function formatKg(n){ return (n||0).toFixed(2).replace('.', ',') + ' кг'; }
+
+  async function loadCatalog(){
+    const res = await fetch(API_BASE + "/catalog");
+    const data = await res.json();
+    STORES = data.stores || [];
+    CATALOG = data.catalog || [];
+    renderStores();
+    if (STORES[0]) renderCatalog(STORES[0].id);
+  }
+
+  function renderStores(){
+    const root = document.getElementById('stores');
+    root.innerHTML = '';
+    for (const s of STORES){
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = s.name;
+      b.onclick = () => { document.getElementById('plan').classList.add('hidden'); renderCatalog(s.id); };
+      root.appendChild(b);
+    }
+  }
+
+  function renderCatalog(storeId){
+    const root = document.getElementById('catalog');
+    root.innerHTML = '';
+    const list = CATALOG.filter(x=>x.store_id===storeId);
+    for (const it of list){
+      const el = document.createElement('div'); el.className='card';
+      el.innerHTML = `
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <div><b>${it.title}</b></div>
+            <div class="muted">${it.price}₽ / ${it.unit}</div>
+          </div>
+          <div class="row">
+            <button class="qtybtn" data-id="${it.id}" data-act="sub">-</button>
+            <div id="q_${it.id}">${cart.get(it.id)||0}</div>
+            <button class="qtybtn" data-id="${it.id}" data-act="add">+</button>
+          </div>
+        </div>`;
+      root.appendChild(el);
+    }
+    root.onclick = (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const id = btn.dataset.id; const act = btn.dataset.act;
+      const item = CATALOG.find(x=>x.id===id);
+      const step = Number(item?.step || 1);
+      const q = Number(cart.get(id)||0);
+      const next = Math.max(0, (act==='add'? q+step : q-step));
+      cart.set(id, parseFloat(next.toFixed(3)));
+      const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = cart.get(id);
+      updateBar();
+    }
+    updateBar();
+  }
+
+  function updateBar(){
+    const bar = document.getElementById('bar');
+    let sum = 0, weight = 0;
+    for (const [id, qty] of cart.entries()){
+      const it = CATALOG.find(x=>x.id===id); if(!it) continue;
+      sum += Number(it.price||0) * Number(qty||0);
+      if (it.unit === 'кг') weight += Number(qty||0);
+      else if (it.weight_per_unit) weight += Number(qty||0) * Number(it.weight_per_unit||0);
+    }
+    document.getElementById('sum').textContent = formatRub(sum);
+    document.getElementById('weight').textContent = formatKg(weight);
+    if (sum>0){ bar.classList.remove('hidden'); tg?.MainButton?.show(); tg?.MainButton?.setText("План покупок"); }
+    else { bar.classList.add('hidden'); tg?.MainButton?.hide(); }
+  }
+
+  async function makePlan(){
+    const items = [...cart.entries()].filter(([,q])=>q>0).map(([id,qty])=>({id, qty}));
+    if (items.length===0) return;
+    const body = { user_id: tg?.initDataUnsafe?.user?.id || "", items };
+    const res = await fetch(API_BASE + "/order", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const plan = await res.json();
+    const box = document.getElementById('plan'); box.classList.remove('hidden');
+    document.getElementById('catalog').innerHTML='';
+    const lines = [];
+    for (const s of STORES){
+      const arr = (plan.by_store && plan.by_store[s.id]) || []; if (arr.length===0) continue;
+      lines.push("## " + s.name);
+      for (const it of arr){
+        const q = it.qty;
+        const unit = it.unit;
+        const price = it.unit_price;
+        lines.push(`- ${it.title} — ${q} ${unit} × ${price}₽`);
+      }
+      const subtotal = arr.reduce((a,b)=>a+b.unit_price*b.qty,0);
+      lines.push(`Итого по ${s.name}: ${subtotal.toFixed(2)}₽`);
+      lines.push("");
+    }
+    lines.push(`ИТОГО: ${plan.sum.toFixed(2)}₽ • Вес: ${plan.total_weight_kg.toFixed(2)} кг`);
+    document.getElementById('planText').textContent = lines.join("\n");
+    tg?.MainButton?.hide();
+  }
+
+  document.getElementById('btnPlan').onclick = makePlan;
+  document.getElementById('btnClear').onclick = ()=>{ cart.clear(); updateBar(); document.getElementById('plan').classList.add('hidden'); };
+
+  tg?.MainButton?.onClick(makePlan);
+
+  loadCatalog();
+  </script>
+</body>
+</html>
