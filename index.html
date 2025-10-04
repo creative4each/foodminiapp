@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑маркет</title>
+  <title>Мини-маркет</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { font-family: -apple-system, Inter, Roboto, Arial; margin:0; padding:16px; }
@@ -21,7 +21,7 @@
   </style>
 </head>
 <body>
-  <h1>🛒 Мини‑маркет</h1>
+  <h1>🛒 Мини-маркет</h1>
   <div id="stores" class="stores"></div>
   <div id="catalog" class="grid"></div>
   <div id="plan" class="hidden">
@@ -37,7 +37,9 @@
   </div>
 
   <script>
-  const API_BASE = "https://script.google.com/macros/s/AKfycbwz8Hfv-8m0b6dPKAPsPEiDn1oOxvn9BRX3XK7yDPHqWGOxRCcLm7sttpQEa-Tjeh8/exec"; // <- замените на URL вашего Apps Script, например: https://script.google.com/macros/s/XXXXX/exec
+  // ← если у GAS сменится URL после нового развертывания — обнови эту строку:
+  const API_BASE = "https://script.google.com/macros/s/AKfycbx3fglickAYnSmCTcYnraTKQouso1DSCgLxFAJqJqHyAO71LGmuLFH8QIw04_tTLyfq/exec";
+
   const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
 
   let STORES = [];
@@ -47,13 +49,30 @@
   function formatRub(n){ return (n||0).toFixed(2).replace('.', ',') + '₽'; }
   function formatKg(n){ return (n||0).toFixed(2).replace('.', ',') + ' кг'; }
 
+  // --- JSONP helper (обход CORS) ---
+  function jsonp(url){
+    return new Promise((resolve, reject)=>{
+      const cb = 'cb_' + Math.random().toString(36).slice(2);
+      window[cb] = (data)=>{ resolve(data); cleanup(); };
+      const s = document.createElement('script');
+      s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+      s.onerror = ()=>{ reject(new Error('JSONP failed')); cleanup(); };
+      function cleanup(){ delete window[cb]; s.remove(); }
+      document.body.appendChild(s);
+    });
+  }
+
   async function loadCatalog(){
-    const res = await fetch(API_BASE + "/catalog");
-    const data = await res.json();
-    STORES = data.stores || [];
-    CATALOG = data.catalog || [];
-    renderStores();
-    if (STORES[0]) renderCatalog(STORES[0].id);
+    try {
+      const data = await jsonp(API_BASE + "/catalog");
+      STORES = data.stores || [];
+      CATALOG = data.catalog || [];
+      renderStores();
+      if (STORES[0]) renderCatalog(STORES[0].id);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('catalog').innerHTML = "<div>Не удалось загрузить каталог. Проверь URL API.</div>";
+    }
   }
 
   function renderStores(){
@@ -119,10 +138,10 @@
 
   async function makePlan(){
     const items = [...cart.entries()].filter(([,q])=>q>0).map(([id,qty])=>({id, qty}));
-    if (items.length===0) return;
+    if (!items.length) return;
     const body = { user_id: tg?.initDataUnsafe?.user?.id || "", items };
-    const res = await fetch(API_BASE + "/order", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    const plan = await res.json();
+    const plan = await jsonp(API_BASE + "/order?data=" + encodeURIComponent(JSON.stringify(body)));
+
     const box = document.getElementById('plan'); box.classList.remove('hidden');
     document.getElementById('catalog').innerHTML='';
     const lines = [];
@@ -146,7 +165,6 @@
 
   document.getElementById('btnPlan').onclick = makePlan;
   document.getElementById('btnClear').onclick = ()=>{ cart.clear(); updateBar(); document.getElementById('plan').classList.add('hidden'); };
-
   tg?.MainButton?.onClick(makePlan);
 
   loadCatalog();
