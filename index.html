@@ -16,7 +16,12 @@
     .row { display:flex; align-items:center; gap:8px; }
     .muted { font-size:12px; color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
     .card .muted { color: var(--tg-theme-hint-color, rgba(255,255,255,.6)); }
-    .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #eee; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+    .bar { position:fixed; left:0; right:0; bottom:0; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); border-top:1px solid var(--tg-theme-section-separator-color, #eee); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+    .bar .muted { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
+    table.plan { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
+    table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; }
+    table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
+    .store-row { font-weight:700; padding-top:12px; }
     .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
     .hidden { display:none; }
     .plan { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -26,12 +31,17 @@
   <h1>🛒 Мини-маркет</h1>
   <div id="stores" class="stores"></div>
   <div id="catalog" class="grid"></div>
+  <div id="autoPlan"></div>
   <div id="plan" class="hidden">
     <h2>План покупок</h2>
     <div id="planText" class="plan"></div>
   </div>
   <div id="bar" class="bar hidden">
-    <div><b id="sum">0₽</b> • <span id="weight" class="muted">0 кг</span></div>
+    <div>
+      <b id="sum">0₽</b>
+      • <span id="weight" class="muted">0 кг</span>
+      <div id="lastItem" class="muted"></div>
+    </div>
     <div>
       <button id="btnPlan" class="btn">План</button>
       <button id="btnClear" class="btn">Очистить</button>
@@ -118,12 +128,14 @@
       const next = Math.max(0, (act==='add'? q+step : q-step));
       cart.set(id, parseFloat(next.toFixed(3)));
       const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = cart.get(id);
-      updateBar();
+      updateBar(item);
+      renderAutoPlan();
     }
     updateBar();
+    renderAutoPlan();
   }
 
-  function updateBar(){
+  function updateBar(lastChangedItem){
     const bar = document.getElementById('bar');
     let sum = 0, weight = 0;
     for (const [id, qty] of cart.entries()){
@@ -134,8 +146,48 @@
     }
     document.getElementById('sum').textContent = formatRub(sum);
     document.getElementById('weight').textContent = formatKg(weight);
-    if (sum>0){ bar.classList.remove('hidden'); tg?.MainButton?.show(); tg?.MainButton?.setText("План покупок"); }
+    if (sum>0){
+      bar.classList.remove('hidden');
+      if (lastChangedItem){
+        const qty = cart.get(lastChangedItem.id) || 0;
+        const name = lastChangedItem.title;
+        const unit = lastChangedItem.unit || '';
+        document.getElementById('lastItem').textContent = qty>0 ? `${name} — ${qty} ${unit}` : '';
+      }
+      tg?.MainButton?.show(); tg?.MainButton?.setText("План покупок");
+    }
     else { bar.classList.add('hidden'); tg?.MainButton?.hide(); }
+  }
+
+  function renderAutoPlan(){
+    const box = document.getElementById('autoPlan');
+    const items = [...cart.entries()].filter(([,q])=>q>0).map(([id,qty])=>({id, qty}));
+    if (items.length===0){ box.innerHTML = ''; return; }
+
+    // Группировка по магазинам
+    const byStore = new Map(); // storeId -> array of items
+    for (const {id, qty} of items){
+      const it = CATALOG.find(x=>x.id===id); if(!it) continue;
+      const arr = byStore.get(it.store_id) || [];
+      arr.push({ item: it, qty });
+      byStore.set(it.store_id, arr);
+    }
+
+    const parts = [];
+    for (const s of STORES){
+      const arr = byStore.get(s.id) || [];
+      if (arr.length===0) continue;
+      parts.push(`<div class=\"store-row\">${s.name}</div>`);
+      parts.push('<table class=\"plan\"><thead><tr><th>Товар</th><th>Кол-во</th><th>Сумма</th></tr></thead><tbody>');
+      for (const {item, qty} of arr){
+        const total = Number(item.price||0) * Number(qty||0);
+        parts.push(`<tr><td>${item.title}</td><td>${qty} ${item.unit||''}</td><td>${total.toFixed(2)}₽</td></tr>`);
+      }
+      const subtotal = arr.reduce((a,{item,qty})=>a+Number(item.price||0)*Number(qty||0),0);
+      parts.push(`<tr><td></td><td style=\"text-align:right;font-weight:600;\">Итого:</td><td style=\"font-weight:600;\">${subtotal.toFixed(2)}₽</td></tr>`);
+      parts.push('</tbody></table>');
+    }
+    box.innerHTML = parts.join('');
   }
 
   async function makePlan(){
