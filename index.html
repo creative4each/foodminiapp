@@ -202,6 +202,8 @@
       tg?.MainButton?.show(); tg?.MainButton?.setText("Очистить");
     }
     else { bar.classList.add('hidden'); tg?.MainButton?.hide(); }
+    // гарантируем, что таблица обновится сразу после любого изменения
+    try { renderAutoPlan(); } catch(_) {}
   }
 
   function renderAutoPlan(){
