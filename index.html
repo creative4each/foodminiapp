@@ -26,9 +26,9 @@
     table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; vertical-align: top; }
     table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
     table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
-    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 16%; }
-    table.plan td.store, table.plan th.store { width: 24%; }
-    table.plan td.title, table.plan th.title { width: 40%; }
+    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 12%; }
+    table.plan td.store, table.plan th.store { width: 28%; }
+    table.plan td.title, table.plan th.title { width: 44%; }
     #autoPlan { padding-bottom: 90px; }
     .store-row { font-weight:700; padding-top:12px; }
     .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
@@ -190,7 +190,9 @@
       const total = Number(it.price||0) * Number(qty||0);
       grandTotal += total;
       const storeName = storeById.get(it.store_id) || '';
-      rows.push(`<tr><td class=\"store\">${storeName}</td><td class=\"title\">${it.title}</td><td class=\"qty\">${qty} ${it.unit||''}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
+      const unit = it.unit||'';
+      const qtyText = unit ? `${qty}${unit}` : `${qty}`;
+      rows.push(`<tr><td class=\"store\">${storeName}</td><td class=\"title\">${it.title}</td><td class=\"qty\">${qtyText}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
     }
 
     box.innerHTML = [
