@@ -26,11 +26,14 @@
     table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; vertical-align: top; }
     table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
     table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
-    table.plan td.check, table.plan th.check { width: 6%; text-align:center; }
     table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 10%; }
-    table.plan td.store, table.plan th.store { width: 32%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
-    table.plan td.title, table.plan th.title { width: 48%; padding-left:12px; }
+    table.plan td.store, table.plan th.store { width: 30%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
+    table.plan td.title, table.plan th.title { width: 50%; padding-left:12px; }
+    table.plan td.title { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .title .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     #autoPlan { padding-bottom: 90px; }
+    .checkbtn { width:24px; height:24px; border-radius:6px; border:1px solid var(--tg-theme-section-separator-color, #555); background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+    .checkbtn:hover { filter: brightness(1.1); }
     .store-row { font-weight:700; padding-top:12px; }
     .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
     .hidden { display:none; }
@@ -192,23 +195,23 @@
       const storeName = storeById.get(it.store_id) || '';
       const unit = it.unit||'';
       const qtyText = unit ? `${qty}${unit}` : `${qty}`;
-      rows.push(`<tr data-id=\"${it.id}\"><td class=\"check\"><input type=\"checkbox\" data-id=\"${it.id}\"/></td><td class=\"store\">${storeName}</td><td class=\"title\">${it.title}</td><td class=\"qty\">${qtyText}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
+      rows.push(`<tr data-id=\"${it.id}\"><td class=\"store\">${storeName}</td><td class=\"title\"><span class=\"name\">${it.title}</span><button class=\"checkbtn\" data-id=\"${it.id}\">✓</button></td><td class=\"qty\">${qtyText}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
     }
 
     box.innerHTML = [
       '<table class=\"plan\">',
-      '<colgroup><col class=\"check\"/><col style=\"width:32%\"/><col style=\"width:48%\"/><col style=\"width:10%\"/><col style=\"width:auto\"/></colgroup>',
-      '<thead><tr><th class=\"check\"></th><th class=\"store\">Магазин</th><th class=\"title\">Товар</th><th class=\"qty\">Кол-во</th><th class=\"price\">Сумма</th></tr></thead>',
+      '<colgroup><col style=\"width:30%\"/><col style=\"width:50%\"/><col style=\"width:10%\"/><col style=\"width:auto\"/></colgroup>',
+      '<thead><tr><th class=\"store\">Магазин</th><th class=\"title\">Товар</th><th class=\"qty\">Кол-во</th><th class=\"price\">Сумма</th></tr></thead>',
       '<tbody>',
       rows.join('').replaceAll('<td>', '<td class=\\"cell\\">').replaceAll('<td class=\\"cell\\">', '<td>'),
       '</tbody>',
-      `<tfoot><tr><td></td><td></td><td></td><td class=\"price\" style=\"font-weight:600;\">Итого:</td><td class=\"price\" style=\"font-weight:600;\">${formatRub(grandTotal)}</td></tr></tfoot>`,
+      `<tfoot><tr><td></td><td></td><td class=\"price\" style=\"font-weight:600;\">Итого:</td><td class=\"price\" style=\"font-weight:600;\">${formatRub(grandTotal)}</td></tr></tfoot>`,
       '</table>'
     ].join('');
 
     // Делегирование кликов по чекбоксам: удаляем позицию из корзины
     box.querySelector('tbody').onclick = (e)=>{
-      const cb = e.target.closest('input[type=checkbox]');
+      const cb = e.target.closest('.checkbtn');
       if(!cb) return;
       const id = cb.getAttribute('data-id');
       if (!id) return;
