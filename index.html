@@ -29,8 +29,9 @@
     table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 10%; }
     table.plan td.store, table.plan th.store { width: 30%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
     table.plan td.title, table.plan th.title { width: 50%; padding-left:12px; }
-    table.plan td.title { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    table.plan td.title { display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; }
     .title .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    table.plan td.title:hover { opacity:.85; }
     #autoPlan { padding-bottom: 90px; }
     .checkbtn { width:24px; height:24px; border-radius:6px; border:1px solid var(--tg-theme-section-separator-color, #555); background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
     .checkbtn:hover { filter: brightness(1.1); }
@@ -195,7 +196,7 @@
       const storeName = storeById.get(it.store_id) || '';
       const unit = it.unit||'';
       const qtyText = unit ? `${qty}${unit}` : `${qty}`;
-      rows.push(`<tr data-id=\"${it.id}\"><td class=\"store\">${storeName}</td><td class=\"title\"><span class=\"name\">${it.title}</span><button class=\"checkbtn\" data-id=\"${it.id}\">✓</button></td><td class=\"qty\">${qtyText}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
+      rows.push(`<tr data-id=\"${it.id}\"><td class=\"store\">${storeName}</td><td class=\"title\"><span class=\"name\">${it.title}</span></td><td class=\"qty\">${qtyText}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
     }
 
     box.innerHTML = [
@@ -209,11 +210,12 @@
       '</table>'
     ].join('');
 
-    // Делегирование кликов по чекбоксам: удаляем позицию из корзины
+    // Делегирование кликов по ячейке товара: удаляем позицию из корзины
     box.querySelector('tbody').onclick = (e)=>{
-      const cb = e.target.closest('.checkbtn');
-      if(!cb) return;
-      const id = cb.getAttribute('data-id');
+      const cell = e.target.closest('td.title');
+      if(!cell) return;
+      const tr = cell.closest('tr');
+      const id = tr?.getAttribute('data-id');
       if (!id) return;
       cart.delete(id);
       // Обновить счётчик в карточке (если есть на экране)
