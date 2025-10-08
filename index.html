@@ -11,11 +11,15 @@
     .stores { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
     .btn { border:1px solid #ddd; border-radius:14px; padding:10px 12px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.06); cursor:pointer; }
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .card { border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06); padding: 12px; background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+    .card { border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06); padding: 12px; background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); max-width:100%; }
     .card b { color: var(--tg-theme-text-color, #000); }
-    .row { display:flex; align-items:center; gap:8px; }
+    .row { display:flex; align-items:center; gap:8px; min-width:0; }
+    .card .row > div:first-child { flex:1; min-width:0; }
     .muted { font-size:12px; color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
     .card .muted { color: var(--tg-theme-hint-color, rgba(255,255,255,.6)); }
+    @media (max-width: 560px){
+      .grid { grid-template-columns: 1fr; }
+    }
     .bar { position:fixed; left:0; right:0; bottom:0; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); border-top:1px solid var(--tg-theme-section-separator-color, #eee); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
     .bar .muted { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
     table.plan { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
@@ -144,9 +148,18 @@
       if (it.unit === 'кг') weight += Number(qty||0);
       else if (it.weight_per_unit) weight += Number(qty||0) * Number(it.weight_per_unit||0);
     }
-    document.getElementById('sum').textContent = formatRub(sum);
-    document.getElementById('weight').textContent = formatKg(weight);
-    if (sum>0){
+    // Отображаем в плашке информацию только по последнему измененному товару
+    if (lastChangedItem){
+      const qty = Number(cart.get(lastChangedItem.id) || 0);
+      const itemTotal = Number(lastChangedItem.price||0) * qty;
+      document.getElementById('sum').textContent = formatRub(itemTotal);
+      document.getElementById('weight').textContent = lastChangedItem.unit==='кг' ? formatKg(qty) : '';
+    } else {
+      // Если нет последнего, показываем пустые значения
+      document.getElementById('sum').textContent = '0₽';
+      document.getElementById('weight').textContent = '';
+    }
+    if (cart.size>0 && [...cart.values()].some(q=>q>0)){
       bar.classList.remove('hidden');
       if (lastChangedItem){
         const qty = cart.get(lastChangedItem.id) || 0;
@@ -180,8 +193,9 @@
       '<thead><tr><th>Магазин</th><th>Товар</th><th>Кол-во</th><th>Сумма</th></tr></thead>',
       '<tbody>',
       rows.join(''),
-      `<tr><td></td><td></td><td style=\"text-align:right;font-weight:600;\">Итого:</td><td style=\"font-weight:600;\">${grandTotal.toFixed(2)}₽</td></tr>`,
-      '</tbody></table>'
+      '</tbody>',
+      `<tfoot><tr><td></td><td></td><td style=\"text-align:right;font-weight:600;\">Итого:</td><td style=\"font-weight:600;\">${grandTotal.toFixed(2)}₽</td></tr></tfoot>`,
+      '</table>'
     ].join('');
   }
 
