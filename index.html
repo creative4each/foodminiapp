@@ -65,10 +65,7 @@
       • <span id="weight" class="muted">0 кг</span>
       <div id="lastItem" class="muted"></div>
     </div>
-    <div id="presets" class="hidden">
-      <button class="presetbtn" data-q="0.5">0.5</button>
-      <button class="presetbtn" data-q="1">1</button>
-    </div>
+    <div></div>
   </div>
 
   <script>
@@ -128,6 +125,7 @@
     const list = CATALOG.filter(x=>x.store_id===storeId);
     for (const it of list){
       const el = document.createElement('div'); el.className='card';
+      const isWeight = (it.unit === 'кг');
       el.innerHTML = `
         <div class="row" style="justify-content:space-between;">
           <div>
@@ -135,6 +133,7 @@
             <div class="muted">${it.price}₽ / ${it.unit}</div>
           </div>
           <div class="row">
+            ${isWeight ? `<button class=\"presetbtn\" data-id=\"${it.id}\" data-q=\"0.5\">0.5</button><button class=\"presetbtn\" data-id=\"${it.id}\" data-q=\"1\">1</button>` : ''}
             <button class="qtybtn" data-id="${it.id}" data-act="sub">-</button>
             <div id="q_${it.id}">${cart.get(it.id)||0}</div>
             <button class="qtybtn" data-id="${it.id}" data-act="add">+</button>
@@ -143,6 +142,16 @@
       root.appendChild(el);
     }
     root.onclick = (e)=>{
+      const preset = e.target.closest('button.presetbtn');
+      if (preset){
+        const id = preset.dataset.id; const item = CATALOG.find(x=>x.id===id); if(!item) return;
+        const value = parseFloat(preset.dataset.q || '0');
+        cart.set(id, value);
+        const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = value;
+        updateBar(item);
+        renderAutoPlan();
+        return;
+      }
       const btn = e.target.closest('button'); if(!btn) return;
       const id = btn.dataset.id; const act = btn.dataset.act;
       const item = CATALOG.find(x=>x.id===id);
