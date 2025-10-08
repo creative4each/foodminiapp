@@ -164,30 +164,25 @@
     const items = [...cart.entries()].filter(([,q])=>q>0).map(([id,qty])=>({id, qty}));
     if (items.length===0){ box.innerHTML = ''; return; }
 
-    // Группировка по магазинам
-    const byStore = new Map(); // storeId -> array of items
+    const storeById = new Map(STORES.map(s=>[s.id, s.name]));
+    let grandTotal = 0;
+    const rows = [];
     for (const {id, qty} of items){
       const it = CATALOG.find(x=>x.id===id); if(!it) continue;
-      const arr = byStore.get(it.store_id) || [];
-      arr.push({ item: it, qty });
-      byStore.set(it.store_id, arr);
+      const total = Number(it.price||0) * Number(qty||0);
+      grandTotal += total;
+      const storeName = storeById.get(it.store_id) || '';
+      rows.push(`<tr><td>${storeName}</td><td>${it.title}</td><td>${qty} ${it.unit||''}</td><td>${total.toFixed(2)}₽</td></tr>`);
     }
 
-    const parts = [];
-    for (const s of STORES){
-      const arr = byStore.get(s.id) || [];
-      if (arr.length===0) continue;
-      parts.push(`<div class=\"store-row\">${s.name}</div>`);
-      parts.push('<table class=\"plan\"><thead><tr><th>Товар</th><th>Кол-во</th><th>Сумма</th></tr></thead><tbody>');
-      for (const {item, qty} of arr){
-        const total = Number(item.price||0) * Number(qty||0);
-        parts.push(`<tr><td>${item.title}</td><td>${qty} ${item.unit||''}</td><td>${total.toFixed(2)}₽</td></tr>`);
-      }
-      const subtotal = arr.reduce((a,{item,qty})=>a+Number(item.price||0)*Number(qty||0),0);
-      parts.push(`<tr><td></td><td style=\"text-align:right;font-weight:600;\">Итого:</td><td style=\"font-weight:600;\">${subtotal.toFixed(2)}₽</td></tr>`);
-      parts.push('</tbody></table>');
-    }
-    box.innerHTML = parts.join('');
+    box.innerHTML = [
+      '<table class=\"plan\">',
+      '<thead><tr><th>Магазин</th><th>Товар</th><th>Кол-во</th><th>Сумма</th></tr></thead>',
+      '<tbody>',
+      rows.join(''),
+      `<tr><td></td><td></td><td style=\"text-align:right;font-weight:600;\">Итого:</td><td style=\"font-weight:600;\">${grandTotal.toFixed(2)}₽</td></tr>`,
+      '</tbody></table>'
+    ].join('');
   }
 
   async function makePlan(){
