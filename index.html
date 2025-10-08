@@ -233,7 +233,18 @@
   }
 
   document.getElementById('btnPlan').onclick = makePlan;
-  document.getElementById('btnClear').onclick = ()=>{ cart.clear(); updateBar(); document.getElementById('plan').classList.add('hidden'); };
+  document.getElementById('btnClear').onclick = ()=>{
+    cart.clear();
+    // очистить авто-план и оставить плашку видимой с нулевыми значениями
+    document.getElementById('autoPlan').innerHTML = '';
+    const bar = document.getElementById('bar');
+    bar.classList.remove('hidden');
+    document.getElementById('sum').textContent = formatRub(0);
+    document.getElementById('weight').textContent = '';
+    document.getElementById('lastItem').textContent = '';
+    document.getElementById('plan').classList.add('hidden');
+    tg?.MainButton?.show(); tg?.MainButton?.setText("План покупок");
+  };
   tg?.MainButton?.onClick(makePlan);
 
   loadCatalog();
