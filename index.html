@@ -22,13 +22,14 @@
     }
     .bar { position:fixed; left:0; right:0; bottom:0; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); border-top:1px solid var(--tg-theme-section-separator-color, #eee); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
     .bar .muted { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
-    table.plan { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; table-layout: fixed; }
+    table.plan { width:90%; margin:12px auto 0; border-collapse:collapse; font-size:14px; table-layout: fixed; }
     table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; vertical-align: top; }
     table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
     table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
-    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 14%; min-width:6ch; }
-    table.plan td.store, table.plan th.store { width: 31%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
-    table.plan td.title, table.plan th.title { width: 45%; padding-left:12px; }
+    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 15%; min-width:6ch; }
+    table.plan td.store, table.plan th.store { width: 30%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
+    table.plan td.title, table.plan th.title { width: 35%; padding-left:12px; }
+    table.plan td.price, table.plan th.price { width: 10%; }
     table.plan td.title { display:block; cursor:pointer; }
     .title .name { overflow:visible; text-overflow:clip; white-space:normal; word-break:break-word; }
     .title.purchased { text-decoration: underline; text-decoration-thickness: 2px; }
@@ -202,7 +203,7 @@
 
     box.innerHTML = [
       '<table class=\"plan\">',
-      '<colgroup><col style=\"width:31%\"/><col style=\"width:45%\"/><col style=\"width:14%\"/><col style=\"width:auto\"/></colgroup>',
+      '<colgroup><col style=\"width:30%\"/><col style=\"width:35%\"/><col style=\"width:15%\"/><col style=\"width:10%\"/></colgroup>',
       '<thead><tr><th class=\"store\">Магазин</th><th class=\"title\">Товар</th><th class=\"qty\">Кол-во</th><th class=\"price\">Сумма</th></tr></thead>',
       '<tbody>',
       rows.join('').replaceAll('<td>', '<td class=\\"cell\\">').replaceAll('<td class=\\"cell\\">', '<td>'),
@@ -220,7 +221,8 @@
       if (!id) return;
       cell.classList.add('purchased');
       const nameEl = cell.querySelector('.name');
-      if (nameEl) nameEl.textContent = 'Куплено';
+      if (nameEl) { nameEl.textContent = 'Куплено'; }
+      else { cell.textContent = 'Куплено'; }
       setTimeout(()=>{
         cart.delete(id);
         const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = '0';
