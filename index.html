@@ -26,11 +26,12 @@
     table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; vertical-align: top; }
     table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
     table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
-    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 10%; }
-    table.plan td.store, table.plan th.store { width: 30%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
-    table.plan td.title, table.plan th.title { width: 50%; padding-left:12px; }
-    table.plan td.title { display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; }
-    .title .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 14%; min-width:6ch; }
+    table.plan td.store, table.plan th.store { width: 26%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
+    table.plan td.title, table.plan th.title { width: 54%; padding-left:12px; }
+    table.plan td.title { display:block; cursor:pointer; }
+    .title .name { overflow:visible; text-overflow:clip; white-space:normal; word-break:break-word; }
+    .title.purchased { text-decoration: underline; text-decoration-thickness: 2px; }
     table.plan td.title:hover { opacity:.85; }
     #autoPlan { padding-bottom: 90px; }
     .checkbtn { width:24px; height:24px; border-radius:6px; border:1px solid var(--tg-theme-section-separator-color, #555); background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
@@ -201,7 +202,7 @@
 
     box.innerHTML = [
       '<table class=\"plan\">',
-      '<colgroup><col style=\"width:30%\"/><col style=\"width:50%\"/><col style=\"width:10%\"/><col style=\"width:auto\"/></colgroup>',
+      '<colgroup><col style=\"width:26%\"/><col style=\"width:54%\"/><col style=\"width:14%\"/><col style=\"width:auto\"/></colgroup>',
       '<thead><tr><th class=\"store\">Магазин</th><th class=\"title\">Товар</th><th class=\"qty\">Кол-во</th><th class=\"price\">Сумма</th></tr></thead>',
       '<tbody>',
       rows.join('').replaceAll('<td>', '<td class=\\"cell\\">').replaceAll('<td class=\\"cell\\">', '<td>'),
@@ -210,18 +211,20 @@
       '</table>'
     ].join('');
 
-    // Делегирование кликов по ячейке товара: удаляем позицию из корзины
+    // Делегирование кликов по ячейке товара: подчёркивание и удаление позиции
     box.querySelector('tbody').onclick = (e)=>{
       const cell = e.target.closest('td.title');
       if(!cell) return;
       const tr = cell.closest('tr');
       const id = tr?.getAttribute('data-id');
       if (!id) return;
-      cart.delete(id);
-      // Обновить счётчик в карточке (если есть на экране)
-      const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = '0';
-      updateBar();
-      renderAutoPlan();
+      cell.classList.add('purchased');
+      setTimeout(()=>{
+        cart.delete(id);
+        const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = '0';
+        updateBar();
+        renderAutoPlan();
+      }, 200);
     };
   }
 
