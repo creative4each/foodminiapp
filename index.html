@@ -22,9 +22,14 @@
     }
     .bar { position:fixed; left:0; right:0; bottom:0; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); border-top:1px solid var(--tg-theme-section-separator-color, #eee); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
     .bar .muted { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
-    table.plan { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
-    table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; }
+    table.plan { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; table-layout: fixed; }
+    table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; vertical-align: top; }
     table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
+    table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
+    table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 16%; }
+    table.plan td.store, table.plan th.store { width: 24%; }
+    table.plan td.title, table.plan th.title { width: 40%; }
+    #autoPlan { padding-bottom: 90px; }
     .store-row { font-weight:700; padding-top:12px; }
     .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
     .hidden { display:none; }
@@ -62,7 +67,7 @@
   let CATALOG = [];
   const cart = new Map(); // id -> qty
 
-  function formatRub(n){ return (n||0).toFixed(2).replace('.', ',') + '₽'; }
+  function formatRub(n){ return String(Math.round(Number(n||0))) + '₽'; }
   function formatKg(n){ return (n||0).toFixed(2).replace('.', ',') + ' кг'; }
 
   // --- JSONP helper (обход CORS) ---
@@ -185,16 +190,17 @@
       const total = Number(it.price||0) * Number(qty||0);
       grandTotal += total;
       const storeName = storeById.get(it.store_id) || '';
-      rows.push(`<tr><td>${storeName}</td><td>${it.title}</td><td>${qty} ${it.unit||''}</td><td>${total.toFixed(2)}₽</td></tr>`);
+      rows.push(`<tr><td class=\"store\">${storeName}</td><td class=\"title\">${it.title}</td><td class=\"qty\">${qty} ${it.unit||''}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
     }
 
     box.innerHTML = [
       '<table class=\"plan\">',
-      '<thead><tr><th>Магазин</th><th>Товар</th><th>Кол-во</th><th>Сумма</th></tr></thead>',
+      '<colgroup><col style=\"width:24%\"/><col style=\"width:40%\"/><col style=\"width:16%\"/><col style=\"width:auto\"/></colgroup>',
+      '<thead><tr><th class=\"store\">Магазин</th><th class=\"title\">Товар</th><th class=\"qty\">Кол-во</th><th class=\"price\">Сумма</th></tr></thead>',
       '<tbody>',
-      rows.join(''),
+      rows.join('').replaceAll('<td>', '<td class=\\"cell\\">').replaceAll('<td class=\\"cell\\">', '<td>'),
       '</tbody>',
-      `<tfoot><tr><td></td><td></td><td style=\"text-align:right;font-weight:600;\">Итого:</td><td style=\"font-weight:600;\">${grandTotal.toFixed(2)}₽</td></tr></tfoot>`,
+      `<tfoot><tr><td></td><td></td><td class=\"price\" style=\"font-weight:600;\">Итого:</td><td class=\"price\" style=\"font-weight:600;\">${formatRub(grandTotal)}</td></tr></tfoot>`,
       '</table>'
     ].join('');
   }
@@ -218,10 +224,10 @@
         lines.push(`- ${it.title} — ${q} ${unit} × ${price}₽`);
       }
       const subtotal = arr.reduce((a,b)=>a+b.unit_price*b.qty,0);
-      lines.push(`Итого по ${s.name}: ${subtotal.toFixed(2)}₽`);
+      lines.push(`Итого по ${s.name}: ${formatRub(subtotal)}`);
       lines.push("");
     }
-    lines.push(`ИТОГО: ${plan.sum.toFixed(2)}₽ • Вес: ${plan.total_weight_kg.toFixed(2)} кг`);
+    lines.push(`ИТОГО: ${formatRub(plan.sum)} • Вес: ${plan.total_weight_kg.toFixed(2)} кг`);
     document.getElementById('planText').textContent = lines.join("\n");
     tg?.MainButton?.hide();
   }
