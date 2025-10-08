@@ -40,7 +40,6 @@
   <h1>🛒 Мини-маркет</h1>
   <div id="stores" class="stores"></div>
   <div id="catalog" class="grid"></div>
-  <h2 id="autoPlanTitle" class="hidden">План покупок</h2>
   <div id="autoPlan"></div>
   <div id="plan" class="hidden">
     <h2>План покупок</h2>
@@ -180,7 +179,7 @@
   function renderAutoPlan(){
     const box = document.getElementById('autoPlan');
     const items = [...cart.entries()].filter(([,q])=>q>0).map(([id,qty])=>({id, qty}));
-    if (items.length===0){ box.innerHTML = ''; document.getElementById('autoPlanTitle').classList.add('hidden'); return; }
+    if (items.length===0){ box.innerHTML = ''; return; }
 
     const storeById = new Map(STORES.map(s=>[s.id, s.name]));
     let grandTotal = 0;
@@ -195,7 +194,6 @@
       rows.push(`<tr><td class=\"store\">${storeName}</td><td class=\"title\">${it.title}</td><td class=\"qty\">${qtyText}</td><td class=\"price\">${formatRub(total)}</td></tr>`);
     }
 
-    document.getElementById('autoPlanTitle').classList.remove('hidden');
     box.innerHTML = [
       '<table class=\"plan\">',
       '<colgroup><col style=\"width:24%\"/><col style=\"width:40%\"/><col style=\"width:16%\"/><col style=\"width:auto\"/></colgroup>',
@@ -239,7 +237,6 @@
     cart.clear();
     // очистить авто-план и оставить плашку видимой с нулевыми значениями
     document.getElementById('autoPlan').innerHTML = '';
-    document.getElementById('autoPlanTitle').classList.add('hidden');
     const bar = document.getElementById('bar');
     bar.classList.remove('hidden');
     document.getElementById('sum').textContent = formatRub(0);
