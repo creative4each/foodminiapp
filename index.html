@@ -45,6 +45,7 @@
     .checkbtn:hover { filter: brightness(1.1); }
     .store-row { font-weight:700; padding-top:12px; }
     .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
+    .presetbtn { border:1px solid var(--tg-theme-section-separator-color, #ddd); border-radius:12px; padding:6px 10px; background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); margin-left:8px; }
     .hidden { display:none; }
     .plan { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   </style>
@@ -64,7 +65,10 @@
       • <span id="weight" class="muted">0 кг</span>
       <div id="lastItem" class="muted"></div>
     </div>
-    <div></div>
+    <div id="presets" class="hidden">
+      <button class="presetbtn" data-q="0.5">0.5</button>
+      <button class="presetbtn" data-q="1">1</button>
+    </div>
   </div>
 
   <script>
@@ -156,6 +160,7 @@
 
   function updateBar(lastChangedItem){
     const bar = document.getElementById('bar');
+    const presets = document.getElementById('presets');
     let sum = 0, weight = 0;
     for (const [id, qty] of cart.entries()){
       const it = CATALOG.find(x=>x.id===id); if(!it) continue;
@@ -181,6 +186,9 @@
         const name = lastChangedItem.title;
         const unit = lastChangedItem.unit || '';
         document.getElementById('lastItem').textContent = qty>0 ? `${name} — ${qty} ${unit}` : '';
+        // показать пресеты только для весовых товаров
+        if ((lastChangedItem.unit||'') === 'кг') { presets.classList.remove('hidden'); presets.dataset.id = lastChangedItem.id; }
+        else { presets.classList.add('hidden'); delete presets.dataset.id; }
       }
       tg?.MainButton?.show(); tg?.MainButton?.setText("Очистить");
     }
@@ -233,6 +241,19 @@
         updateBar();
         renderAutoPlan();
       }, 350);
+    };
+
+    // Обработчики пресетов количества в нижней плашке
+    const presets = document.getElementById('presets');
+    presets.onclick = (e)=>{
+      const btn = e.target.closest('button.presetbtn'); if(!btn) return;
+      const id = presets.dataset.id; if(!id) return;
+      const item = CATALOG.find(x=>x.id===id); if(!item) return;
+      const value = parseFloat(btn.dataset.q || '0');
+      cart.set(id, value);
+      const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = value;
+      updateBar(item);
+      renderAutoPlan();
     };
   }
 
