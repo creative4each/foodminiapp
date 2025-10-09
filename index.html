@@ -23,9 +23,10 @@
     .bar { position:fixed; left:0; right:0; bottom:0; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); border-top:1px solid var(--tg-theme-section-separator-color, #eee); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
     .bar .muted { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
     table.plan { width:95%; margin:12px auto 0; border-collapse:collapse; font-size:14px; table-layout: fixed; }
-    table.plan th, table.plan td { padding:8px; border-bottom:1px dotted rgba(255,255,255,0.6); text-align:left; vertical-align: top; }
-    table.plan th:not(:first-child), table.plan td:not(:first-child) { border-left: 1px dotted rgba(255,255,255,0.6); }
-    table.plan thead th { border-bottom: 1px dotted rgba(255,255,255,0.6); color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; white-space:normal; word-break:break-word; }
+    table.plan th, table.plan td { padding:8px; border-bottom:1px solid var(--tg-theme-section-separator-color, #eee); text-align:left; vertical-align: top; }
+    table.plan th:not(:first-child), table.plan td:not(:first-child) { border-left: 1px solid var(--tg-theme-section-separator-color, #eee); }
+    table.plan thead th { border-bottom: 1px solid var(--tg-theme-section-separator-color, #eee); }
+    table.plan thead th { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; }
     table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
     table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 15%; min-width:6ch; }
     table.plan td.store, table.plan th.store { width: 28%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
@@ -44,7 +45,6 @@
     .checkbtn:hover { filter: brightness(1.1); }
     .store-row { font-weight:700; padding-top:12px; }
     .qtybtn { width:32px; height:32px; border:1px solid #ddd; border-radius:12px; background:#fff; }
-    .presetbtn { border:1px solid var(--tg-theme-section-separator-color, #ddd); border-radius:12px; padding:6px 10px; background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #000); margin-left:8px; }
     .hidden { display:none; }
     .plan { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   </style>
@@ -124,7 +124,6 @@
     const list = CATALOG.filter(x=>x.store_id===storeId);
     for (const it of list){
       const el = document.createElement('div'); el.className='card';
-      const isWeight = (it.unit === 'кг');
       el.innerHTML = `
         <div class="row" style="justify-content:space-between;">
           <div>
@@ -132,7 +131,6 @@
             <div class="muted">${it.price}₽ / ${it.unit}</div>
           </div>
           <div class="row">
-            ${isWeight ? `<button class=\"presetbtn\" data-id=\"${it.id}\" data-q=\"0.5\">0.5</button><button class=\"presetbtn\" data-id=\"${it.id}\" data-q=\"1\">1</button>` : ''}
             <button class="qtybtn" data-id="${it.id}" data-act="sub">-</button>
             <div id="q_${it.id}">${cart.get(it.id)||0}</div>
             <button class="qtybtn" data-id="${it.id}" data-act="add">+</button>
@@ -141,17 +139,6 @@
       root.appendChild(el);
     }
     root.onclick = (e)=>{
-      const preset = e.target.closest('button.presetbtn');
-      if (preset){
-        const id = preset.dataset.id; const item = CATALOG.find(x=>x.id===id); if(!item) return;
-        const value = parseFloat(preset.dataset.q || '0');
-        cart.set(id, value);
-        const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = value;
-        // немедленное обновление плана
-        updateBar(item);
-        renderAutoPlan();
-        return;
-      }
       const btn = e.target.closest('button'); if(!btn) return;
       const id = btn.dataset.id; const act = btn.dataset.act;
       const item = CATALOG.find(x=>x.id===id);
@@ -160,7 +147,6 @@
       const next = Math.max(0, (act==='add'? q+step : q-step));
       cart.set(id, parseFloat(next.toFixed(3)));
       const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = cart.get(id);
-      // немедленное обновление плана
       updateBar(item);
       renderAutoPlan();
     }
@@ -170,7 +156,6 @@
 
   function updateBar(lastChangedItem){
     const bar = document.getElementById('bar');
-    const presets = document.getElementById('presets');
     let sum = 0, weight = 0;
     for (const [id, qty] of cart.entries()){
       const it = CATALOG.find(x=>x.id===id); if(!it) continue;
@@ -196,15 +181,10 @@
         const name = lastChangedItem.title;
         const unit = lastChangedItem.unit || '';
         document.getElementById('lastItem').textContent = qty>0 ? `${name} — ${qty} ${unit}` : '';
-        // показать пресеты только для весовых товаров
-        if ((lastChangedItem.unit||'') === 'кг') { presets.classList.remove('hidden'); presets.dataset.id = lastChangedItem.id; }
-        else { presets.classList.add('hidden'); delete presets.dataset.id; }
       }
-      tg?.MainButton?.show(); tg?.MainButton?.setText("Очистить");
+      tg?.MainButton?.show(); tg?.MainButton?.setText("План покупок");
     }
     else { bar.classList.add('hidden'); tg?.MainButton?.hide(); }
-    // гарантируем, что таблица обновится сразу после любого изменения
-    renderAutoPlan();
   }
 
   function renderAutoPlan(){
@@ -253,19 +233,6 @@
         updateBar();
         renderAutoPlan();
       }, 350);
-    };
-
-    // Обработчики пресетов количества в нижней плашке
-    const presets = document.getElementById('presets');
-    presets.onclick = (e)=>{
-      const btn = e.target.closest('button.presetbtn'); if(!btn) return;
-      const id = presets.dataset.id; if(!id) return;
-      const item = CATALOG.find(x=>x.id===id); if(!item) return;
-      const value = parseFloat(btn.dataset.q || '0');
-      cart.set(id, value);
-      const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = value;
-      updateBar(item);
-      renderAutoPlan();
     };
   }
 
