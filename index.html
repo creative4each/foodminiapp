@@ -182,7 +182,7 @@
         const unit = lastChangedItem.unit || '';
         document.getElementById('lastItem').textContent = qty>0 ? `${name} — ${qty} ${unit}` : '';
       }
-      tg?.MainButton?.show(); tg?.MainButton?.setText("План покупок");
+      tg?.MainButton?.show(); tg?.MainButton?.setText("Очистить");
     }
     else { bar.classList.add('hidden'); tg?.MainButton?.hide(); }
   }
