@@ -23,9 +23,9 @@
     .bar { position:fixed; left:0; right:0; bottom:0; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); border-top:1px solid var(--tg-theme-section-separator-color, #eee); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
     .bar .muted { color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); }
     table.plan { width:95%; margin:12px auto 0; border-collapse:collapse; font-size:14px; table-layout: fixed; }
-    table.plan th, table.plan td { padding:8px; border-bottom:1px dotted rgba(255,255,255,.5); text-align:left; vertical-align: top; }
-    table.plan th:not(:first-child), table.plan td:not(:first-child) { border-left: 1px dotted rgba(255,255,255,.5); }
-    table.plan thead th { border-bottom: 1px dotted rgba(255,255,255,.5); color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; white-space:normal; word-break:break-word; }
+    table.plan th, table.plan td { padding:8px; border-bottom:1px dotted rgba(255,255,255,0.6); text-align:left; vertical-align: top; }
+    table.plan th:not(:first-child), table.plan td:not(:first-child) { border-left: 1px dotted rgba(255,255,255,0.6); }
+    table.plan thead th { border-bottom: 1px dotted rgba(255,255,255,0.6); color: var(--tg-theme-hint-color, rgba(0,0,0,.6)); font-weight:600; white-space:normal; word-break:break-word; }
     table.plan td.price, table.plan th.price { text-align:right; white-space:nowrap; }
     table.plan td.qty, table.plan th.qty { white-space:nowrap; width: 15%; min-width:6ch; }
     table.plan td.store, table.plan th.store { width: 28%; padding-right:12px; border-right:1px solid var(--tg-theme-section-separator-color, #3a3a3a); }
@@ -148,8 +148,8 @@
         cart.set(id, value);
         const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = value;
         // немедленное обновление плана
-        renderAutoPlan();
         updateBar(item);
+        renderAutoPlan();
         return;
       }
       const btn = e.target.closest('button'); if(!btn) return;
@@ -161,8 +161,8 @@
       cart.set(id, parseFloat(next.toFixed(3)));
       const qEl = document.getElementById('q_'+id); if(qEl) qEl.textContent = cart.get(id);
       // немедленное обновление плана
-      renderAutoPlan();
       updateBar(item);
+      renderAutoPlan();
     }
     updateBar();
     renderAutoPlan();
@@ -204,7 +204,7 @@
     }
     else { bar.classList.add('hidden'); tg?.MainButton?.hide(); }
     // гарантируем, что таблица обновится сразу после любого изменения
-    try { renderAutoPlan(); } catch(_) {}
+    renderAutoPlan();
   }
 
   function renderAutoPlan(){
